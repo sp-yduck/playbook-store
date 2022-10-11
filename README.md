@@ -18,3 +18,6 @@ docker run -it <name:tag>
 root@container:~$ ansible-playbook hello-world.yaml --ask-pass 
 SSH password: # pass your ssh key for your hosts
 ```
+
+## License
+MIT ([LICENSE](LICENSE))
