@@ -1,0 +1,13 @@
+# hosts
+[master-node]
+localhost
+
+[worker-node]
+
+[all:children]
+master-node
+worker-node
+
+
+# vars
+[all:vars]
