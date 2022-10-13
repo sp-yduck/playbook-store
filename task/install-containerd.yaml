@@ -19,3 +19,33 @@
 
 - name: check by sysctl
   shell: sysctl --system
+
+- name: install yum-utils, device-mapper-persistent-data, lvm2
+  yum:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - yum-utils
+    - device-mapper-persistent-data
+    - lvm2
+
+- name: add docker-ce repo
+  shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+- name: install containerd.io
+  yum:
+    name: containerd.io
+
+- name: mkdir -p /etc/containerd
+  file:
+    path: "/etc/containerd"
+    state: directory
+
+- name: configure containerd
+  shell: containerd config default | tee /etc/containerd/config.toml
+
+- name: systemctl enable/restart containerd
+  systemd:
+    name: containerd
+    enabled: yes
+    state: restarted

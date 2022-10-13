@@ -1,0 +1,4 @@
+- hosts: k8s_worker
+  tasks:
+  - name: kubeadm join
+    include_tasks: ./task/kubeadm-join.yaml

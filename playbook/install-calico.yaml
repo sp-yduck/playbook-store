@@ -1,0 +1,4 @@
+- hosts: k8s_master
+  tasks:
+  - name: install calico
+    include_tasks: ./task/install-calico.yaml

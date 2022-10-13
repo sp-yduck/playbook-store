@@ -1,0 +1,31 @@
+- hosts: k8s_master
+  tasks:
+  - name: swapoff
+    include_tasks: ./task/swap-off.yaml
+
+  - name: install-containerd
+    include_tasks: ./task/install-containerd.yaml
+
+  - name: install kubeadm,kubelet,kubectl
+    include_tasks: ./task/install-kubeadm-kubelet-kubectl.yaml
+
+  - name: kubeadm reset
+    shell: kubeadm reset -f
+    ignore_errors: yes
+
+  - name: kubeadm init
+    include_tasks: ./task/kubeadm-init.yaml
+
+  - name: prepare ~/.kube/config
+    copy:
+      src: /etc/kubernetes/admin.conf
+      dest: /root/.kube/config
+
+  - name: check alias k
+    shell: alias k
+    ignore_errors: yes
+    register: k
+
+  - name: edit .bashrc
+    shell: echo 'alias k=kubectl' >> /root/.bashrc && echo 'export KUBECONFIG=/root/.kube/config' >> /root/.bashrc && source /root/.bashrc
+    when: k is not true

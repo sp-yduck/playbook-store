@@ -1,0 +1,11 @@
+- name: create new token with print-join-command
+  delegate_to: k8s_master
+  shell: kubeadm token create --print-join-command | grep 'kubeadm join'
+  register: result
+
+- name: kubeadm join
+  shell: "{{ result.stdout }}"  
+
+- name: check if the nodes joined the cluster
+  delegate_to: k8s_master
+  shell: kubectl get node 
