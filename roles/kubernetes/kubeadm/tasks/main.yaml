@@ -1,0 +1,77 @@
+- name: get stable release
+  shell: curl -sSL https://dl.k8s.io/release/stable.txt
+  register: release
+  # when: use_stable_version is true
+
+# TO DO : use non stable version
+# - name: register k8s version
+#   shell: echo {{ k8s_version }}
+#   register: release
+#   when: use_stable_version is false
+
+- name: download kubeadm
+  shell:
+    cmd: "curl -L --remote-name-all https://dl.k8s.io/release/{{ release.stdout }}/bin/linux/{{ arch }}/kubeadm"
+    chdir: "/usr/local/bin"
+    creates: /usr/local/bin/kubeadm
+
+- name: chmod kubeadm
+  file:
+    path: "/usr/local/bin/kubeadm"
+    mode: +x
+
+- name: download kubelet
+  get_url:
+    url: "https://dl.k8s.io/release/{{ release.stdout }}/bin/linux/{{ arch }}/kubelet"
+    dest: "/usr/local/bin/kubelet"
+    mode: +x
+
+- name: download kubelet.service
+  shell:
+    cmd: "curl -sSL 'https://raw.githubusercontent.com/kubernetes/release/{{ k8s_release_version }}/cmd/kubepkg/templates/latest/deb/kubelet/lib/systemd/system/kubelet.service' | sed 's:/usr/bin:/usr/local/bin:g' | tee /etc/systemd/system/kubelet.service"
+    creates: /etc/systemd/system/kubelet.service
+
+- name: stop kubelet.service
+  systemd:
+    name: kubelet
+    state: stopped
+
+- name: mkdir for kubelet.service.d
+  file:
+    path: /etc/systemd/system/kubelet.service.d
+    state: directory
+
+- name: download kubeadm.conf
+  shell:
+    cmd: "curl -sSL 'https://raw.githubusercontent.com/kubernetes/release/{{ k8s_release_version }}/cmd/kubepkg/templates/latest/deb/kubeadm/10-kubeadm.conf' | sed 's:/usr/bin:/usr/local/bin:g' | tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf"
+    creates: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+- name: chmod kubeadm.conf
+  file:
+    path: /etc/kubernetes/admin.conf
+    mode: +x
+
+- name: install socat,conntrack
+  yum:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - socat
+    - conntrack
+
+- name: systemctl enable kubelet
+  systemd:
+    name: kubelet
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: kubeadm is initiated
+  shell: /usr/local/bin/kubeadm token list
+  ignore_errors: true
+  register: initiated
+
+- name: kubeadm init
+  shell: 'KUBELET_KUBEADM_ARGS="--container-runtime={{ container_runtime }} --container-runtime-endpoint={{ container_runtime_endpoint }}" \
+    kubeadm init --pod-network-cidr={{ pod_network_cidr }}'
+  when: initiated is true

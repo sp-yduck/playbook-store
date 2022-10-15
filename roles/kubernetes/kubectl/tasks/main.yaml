@@ -1,0 +1,23 @@
+- name: get stable release
+  shell: curl -sSL https://dl.k8s.io/release/stable.txt
+  register: release
+
+- name: install kubectl
+  get_url:
+    url: "https://dl.k8s.io/release/{{ release.stdout }}/bin/linux/amd64/kubectl"
+    dest: "/usr/local/bin/kubectl"
+    mode: +x
+
+- name: mkdir /root/.kube
+  file:
+    path: /root/.kube
+    state: directory
+
+- name: prepare /root/.kube/config
+  shell: 
+    cmd: cp /etc/kubernetes/admin.conf /root/.kube/config
+    creates: /root/.kube/config
+
+# TO DO : idempotency
+- name: edit .bashrc
+  shell: echo 'alias k=kubectl' >> /root/.bashrc && echo 'export KUBECONFIG=/root/.kube/config' >> /root/.bashrc && source /root/.bashrc

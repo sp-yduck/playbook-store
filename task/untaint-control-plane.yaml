@@ -1,0 +1,3 @@
+- name: untaint control-plane
+  shell: kubectl taint node {{ ansible_host }} node-role.kubernetes.io/control-plane-
+  ignore_errors: yes

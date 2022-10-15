@@ -1,7 +1,0 @@
-- name: kubeadm init
-  vars:
-    pod_network_cidr: "192.168.0.0/16"
-    container_runtime: "remote"
-    container_runtime_endpoint: "/run/containerd/containerd.sock"
-  shell: 'KUBELET_KUBEADM_ARGS="--container-runtime={{ container_runtime }} --container-runtime-endpoint={{ container_runtime_endpoint }}" \
-    kubeadm init --pod-network-cidr={{ pod_network_cidr }}'

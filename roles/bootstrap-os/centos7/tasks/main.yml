@@ -1,0 +1,26 @@
+- name: swap off
+  shell: swapoff -a
+
+- name: install cni plugins
+  vars:
+    cni_version: v1.1.1
+  shell:
+    cmd: 'curl -L "https://github.com/containernetworking/plugins/releases/download/{{ cni_version }}/cni-plugins-linux-{{ arch }}-{{ cni_version }}.tgz" | sudo tar -C "/opt/cni/bin" -xz'
+
+- name: mkdir for crictl
+  file:
+    path: "/usr/local/bin"
+    state: directory
+
+- name: install crictl
+  vars:
+    crictl_version: v1.25.0
+  shell: 
+    cmd: 'curl -L "https://github.com/kubernetes-sigs/cri-tools/releases/download/{{ crictl_version }}/crictl-{{ crictl_version }}-linux-{{ arch }}.tar.gz" | sudo tar -C "/usr/local/bin" -xz'
+    creates: "/usr/local/bin/crictl"
+
+- name: set selinux to permissive
+  selinux:
+    state: permissive
+    policy: targeted
+    configfile: /etc/selinux/config

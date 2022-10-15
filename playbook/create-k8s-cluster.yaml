@@ -1,0 +1,9 @@
+- name: create k8s cluster
+  hosts: k8s_master
+  become: true
+  roles:
+  - bootstrap-os/centos7
+  - container-runtime/containerd
+  - kubernetes/kubeadm
+  - kubernetes/kubectl
+  - cni/calico

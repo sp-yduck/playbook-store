@@ -1,0 +1,18 @@
+# os
+arch: amd64
+bin_dir: /usr/local/bin/
+
+# kubernetes
+# use_stable_version: true
+# k8s_version: v1.25.0
+k8s_release_version: v0.4.0
+
+# kubeadm init
+pod_network_cidr: "192.168.0.0/16"
+container_runtime: "remote"
+container_runtime_endpoint: "/run/containerd/containerd.sock"
+
+# calico
+calicocrd_version: v3.24.1
+calico_version: v3.20.0
+typha_replicas: 1

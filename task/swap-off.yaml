@@ -1,2 +1,0 @@
-- name: swap off
-  shell: swapoff -a

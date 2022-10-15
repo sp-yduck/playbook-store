@@ -1,0 +1,272 @@
+- name: mkdir /tmp/calico
+  file:
+    path: /tmp/calico
+    state: directory
+
+- name: get calico crds
+  get_url:
+    url: "https://raw.githubusercontent.com/projectcalico/calico/{{ calicocrd_version }}/manifests/crds.yaml"
+    dest: /tmp/calico/crds.yaml
+
+- name: export kubectl path
+  shell: export PATH=$PATH:/usr/local/bin
+
+- name: apply calico crds
+  shell: "{{ bin_dir }}kubectl apply -f /tmp/calico/crds.yaml"
+
+- name: get calicoctl
+  get_url: 
+    url: "https://github.com/projectcalico/calicoctl/releases/download/{{ calico_version }}/calicoctl"
+    dest: "/usr/local/bin/calicoctl"
+    mode: +x
+
+- name: check DATASTORE_TYPE
+  shell: echo $DATASTORE_TYPE
+  register: datastore
+
+- name: set DATASTORE_TYPE
+  shell: echo 'export DATASTORE_TYPE=kubernetes' >> /root/.bashrc && source /root/.bashrc
+  when: datastore.stdout == ""
+
+- name: create manifest ip pool1
+  template:
+    src: templates/pool1.yaml.j2
+    dest: /tmp/calico/pool1.yaml
+
+- name: create manifest ip pool2
+  template:
+    src: templates/pool2.yaml.j2
+    dest: /tmp/calico/pool2.yaml
+
+- name: apply IP pools
+  shell: |
+    {{ bin_dir }}calicoctl apply -f /tmp/calico/pool1.yaml
+    {{ bin_dir }}calicoctl apply -f /tmp/calico/pool2.yaml
+    
+- name: create cni.key
+  shell:
+    chdir: /tmp/calico
+    cmd: |
+      openssl req -newkey rsa:4096 \
+        -keyout cni.key \
+        -nodes \
+        -out cni.csr \
+        -subj "/CN=calico-cni"
+    creates: cni.key
+
+- name: create cni.crt
+  shell:
+    chdir: /tmp/calico
+    cmd: |
+      openssl x509 -req -in cni.csr \
+        -CA /etc/kubernetes/pki/ca.crt \
+        -CAkey /etc/kubernetes/pki/ca.key \
+        -CAcreateserial \
+        -out cni.crt \
+        -days 365
+    creates: cni.crt
+
+- name: kubectl config for cni
+  shell:
+    chdir: /tmp/calico
+    cmd: |
+      APISERVER=$({{ bin_dir }}kubectl config view -o jsonpath='{.clusters[0].cluster.server}')
+      {{ bin_dir }}kubectl config set-cluster kubernetes \
+        --certificate-authority=/etc/kubernetes/pki/ca.crt \
+        --embed-certs=true \
+        --server=$APISERVER \
+        --kubeconfig=cni.kubeconfig
+
+      {{ bin_dir }}kubectl config set-credentials calico-cni \
+        --client-certificate=cni.crt \
+        --client-key=cni.key \
+        --embed-certs=true \
+        --kubeconfig=cni.kubeconfig
+
+      {{ bin_dir }}kubectl config set-context default \
+        --cluster=kubernetes \
+        --user=calico-cni \
+        --kubeconfig=cni.kubeconfig
+
+      {{ bin_dir }}kubectl config use-context default --kubeconfig=cni.kubeconfig
+
+- name: create calico cni cr
+  template:
+    src: templates/calico-cni-cr.yaml.j2
+    dest: /tmp/calico/calico-cni-cr.yaml
+
+- name: create calico cni crb
+  template:
+    src: templates/calico-cni-crb.yaml.j2
+    dest: /tmp/calico/calico-cni-crb.yaml
+
+- name: apply calico cni rbac
+  shell: |
+    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-cni-cr.yaml
+    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-cni-crb.yaml
+
+- name: install calico
+  get_url:
+    url: https://github.com/projectcalico/cni-plugin/releases/download/v3.14.0/calico-amd64
+    dest: /opt/cni/bin/calico
+    mode: +x
+
+- name: install calico-ipam
+  get_url:
+    url: https://github.com/projectcalico/cni-plugin/releases/download/v3.14.0/calico-ipam-amd64
+    dest: /opt/cni/bin/calico-ipam
+    mode: +x
+
+- name: mkdir /etc/cni/net.d/
+  file:
+    path: /etc/cni/net.d
+    state: directory
+
+- name: calico-kubecofig
+  shell:
+    cmd: cp /tmp/calico/cni.kubeconfig /etc/cni/net.d/calico-kubeconfig
+    creates: /etc/cni/net.d/calico-kubeconfig
+
+- name: cni config
+  template:
+    src: templates/10-calico.conflist.j2
+    dest: /etc/cni/net.d/10-calico.conflist
+
+- name: create typhaca.key and typhaca.crt
+  shell:
+    chdir: /tmp/calico
+    cmd: |
+      openssl req -x509 -newkey rsa:4096 \
+        -keyout typhaca.key \
+        -nodes \
+        -out typhaca.crt \
+        -subj "/CN=Calico Typha CA" \
+        -days 365
+    creates: typhaca.crt
+
+- name: create typha.key and typha.csr
+  shell:
+    chdir: /tmp/calico
+    cmd: |
+      openssl req -newkey rsa:4096 \
+        -keyout typha.key \
+        -nodes \
+        -out typha.csr \
+        -subj "/CN=calico-typha"
+    creates: typha.csr
+
+- name: create typha.crt
+  shell:
+    chdir: /tmp/calico
+    cmd: |
+      openssl x509 -req -in typha.csr \
+        -CA typhaca.crt \
+        -CAkey typhaca.key \
+        -CAcreateserial \
+        -out typha.crt \
+        -days 365
+    creates: typha.crt
+
+- name: cm & secrets for calico-typha-certs
+  shell:
+    chdir: /tmp/calico
+    cmd: |
+      {{ bin_dir }}kubectl create configmap -n kube-system calico-typha-ca --from-file=typhaca.crt
+      {{ bin_dir }}kubectl create secret generic -n kube-system calico-typha-certs --from-file=typha.key --from-file=typha.crt
+  ignore_errors: true
+
+- name: create calico typha sa
+  template:
+    src: templates/calico-typha-sa.yaml.j2
+    dest: /tmp/calico/calico-typha-sa.yaml
+
+- name: create calico typha cr
+  template:
+    src: templates/calico-typha-cr.yaml.j2
+    dest: /tmp/calico/calico-typha-cr.yaml
+
+- name: create calico typha crb
+  template:
+    src: templates/calico-typha-crb.yaml.j2
+    dest: /tmp/calico/calico-typha-crb.yaml
+
+- name: calico typha rbac
+  shell: |
+    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-typha-sa.yaml
+    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-typha-cr.yaml
+    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-typha-crb.yaml
+
+- name: create calico typha deployment
+  template:
+    src: templates/calico-typha-deploy.yaml.j2
+    dest: /tmp/calico/calico-typha-deploy.yaml
+
+- name: create calico typha svc
+  template:
+    src: templates/calico-typha-svc.yaml.j2
+    dest: /tmp/calico/calico-typha-svc.yaml
+
+- name: apply calico typha deployment/svc
+  shell: |
+    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-typha-deploy.yaml
+    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-typha-svc.yaml
+
+- name: create calico-node.key and calico-node.csr
+  shell:
+    chdir: /tmp/calico
+    cmd: |
+      openssl req -newkey rsa:4096 \
+        -keyout calico-node.key \
+        -nodes \
+        -out calico-node.csr \
+        -subj "/CN=calico-node"
+    creates: calico-node.csr
+
+- name: create calico-node.crt
+  shell:
+    chdir: /tmp/calico
+    cmd: |
+      openssl x509 -req -in calico-node.csr \
+        -CA typhaca.crt \
+        -CAkey typhaca.key \
+        -CAcreateserial \
+        -out calico-node.crt \
+        -days 365
+    creates: calico-node.crt
+
+- name: calico node certs
+  shell:
+    chdir: /tmp/calico
+    cmd: |
+      {{ bin_dir }}kubectl create secret generic -n kube-system calico-node-certs --from-file=calico-node.key --from-file=calico-node.crt
+  ignore_errors: true
+
+- name: create calico node sa
+  template:
+    src: templates/calico-node-sa.yaml.j2
+    dest: /tmp/calico/calico-node-sa.yaml
+
+- name: create calico node cr
+  template:
+    src: templates/calico-node-cr.yaml.j2
+    dest: /tmp/calico/calico-node-cr.yaml
+
+- name: create calico node crb
+  template:
+    src: templates/calico-node-crb.yaml.j2
+    dest: /tmp/calico/calico-node-crb.yaml
+
+- name: apply calico node rbac
+  shell: |
+    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-node-sa.yaml
+    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-node-cr.yaml
+    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-node-crb.yaml
+
+- name: create calico node ds
+  template:
+    src: templates/calico-node-ds.yaml.j2
+    dest: /tmp/calico/calico-node-ds.yaml
+
+- name: apply calico node ds
+  shell: |
+    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-node-ds.yaml

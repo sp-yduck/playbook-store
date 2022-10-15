@@ -5,7 +5,3 @@
 
 - name: kubeadm join
   shell: "{{ result.stdout }}"  
-
-- name: check if the nodes joined the cluster
-  delegate_to: k8s_master
-  shell: kubectl get node 

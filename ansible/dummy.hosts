@@ -1,13 +1,14 @@
 # hosts
 [master-node]
-localhost
+master00
+master01
+master02
 
 [worker-node]
+node00
+node01
+node02
 
 [all:children]
 master-node
 worker-node
-
-
-# vars
-[all:vars]

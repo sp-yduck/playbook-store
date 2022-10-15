@@ -1,4 +1,0 @@
-- hosts: all
-  tasks:
-  - name: install containerd
-    include_tasks: ./task/install-containerd.yaml
