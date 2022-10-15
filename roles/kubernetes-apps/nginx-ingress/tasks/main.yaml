@@ -1,0 +1,35 @@
+- name: apply ingress-nginx-controller
+  shell: |
+    {{ bin_dir }}kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.4.0/deploy/static/provider/cloud/deploy.yaml
+
+- name: mkdir /tmp/ingress-nginx
+  file:
+    path: /tmp/ingress-nginx
+    state: directory
+
+- name: create nginx pod manifest
+  template:
+    src: templates/nginx-pod.yaml.j2
+    dest: /tmp/ingress-nginx/nginx-pod.yaml
+
+- name: run nginx
+  shell: |
+    {{ bin_dir }}kubectl apply -f /tmp/ingress-nginx/nginx-pod.yaml
+
+- name: create nginx svc manifest
+  template:
+    src: templates/nginx-svc.yaml.j2
+    dest: /tmp/ingress-nginx/nginx-svc.yaml
+
+- name: expose nginx
+  shell: | 
+    {{ bin_dir }}kubectl apply -f /tmp/ingress-nginx/nginx-svc.yaml
+
+- name: create sample ingress
+  template:
+    src: templates/ingress-for-nginx.yaml.j2
+    dest: /tmp/ingress-nginx/ingress-for-nginx.yaml
+
+- name: apply sample ingress
+  shell: | 
+    {{ bin_dir }}kubectl apply -f /tmp/ingress-nginx/ingress-for-nginx.yaml

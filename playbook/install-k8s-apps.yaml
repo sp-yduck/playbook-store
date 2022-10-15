@@ -1,0 +1,7 @@
+- name: install k8s apps
+  hosts: k8s_master
+  become: true
+  roles:
+  - kubernetes-apps/metallb
+  - kubernetes-apps/nginx-ingress
+  - kubernetes-apps/cert-manager
