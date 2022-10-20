@@ -1,6 +1,6 @@
 # os
 arch: amd64
-bin_dir: /usr/local/bin/
+bin_dir: /usr/local/bin
 
 # kubernetes
 # use_stable_version: true
@@ -16,3 +16,8 @@ container_runtime_endpoint: "/run/containerd/containerd.sock"
 calicocrd_version: v3.24.1
 calico_version: v3.20.0
 typha_replicas: 1
+
+# prometheus
+prometheus_operator_version: v0.60.1
+monitoring_cluster: anteater
+alertmanager_version: v0.24.0

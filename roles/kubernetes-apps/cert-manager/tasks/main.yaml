@@ -10,8 +10,8 @@
 
 - name: apply cert-manager ns/crds
   shell: |
-    {{ bin_dir }}kubectl apply -f /tmp/cert-manager/cert-manager-ns.yaml
-    {{ bin_dir }}kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/cert-manager/cert-manager-ns.yaml
+    {{ bin_dir }}/kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
 
 - name: create manifest letsencrypt issuer
   template:
@@ -25,5 +25,5 @@
 
 - name: apply letsencrypt
   shell: |
-    {{ bin_dir }}kubectl apply -f /tmp/cert-manager/letsencrypt-prod-issuer.yaml
-    {{ bin_dir }}kubectl apply -f /tmp/cert-manager/letsencrypt-prod-ingress-nginx.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/cert-manager/letsencrypt-prod-issuer.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/cert-manager/letsencrypt-prod-ingress-nginx.yaml

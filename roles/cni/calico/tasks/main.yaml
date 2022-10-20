@@ -12,7 +12,7 @@
   shell: export PATH=$PATH:/usr/local/bin
 
 - name: apply calico crds
-  shell: "{{ bin_dir }}kubectl apply -f /tmp/calico/crds.yaml"
+  shell: "{{ bin_dir }}/kubectl apply -f /tmp/calico/crds.yaml"
 
 - name: get calicoctl
   get_url: 
@@ -40,8 +40,8 @@
 
 - name: apply IP pools
   shell: |
-    {{ bin_dir }}calicoctl apply -f /tmp/calico/pool1.yaml
-    {{ bin_dir }}calicoctl apply -f /tmp/calico/pool2.yaml
+    {{ bin_dir }}/calicoctl apply -f /tmp/calico/pool1.yaml
+    {{ bin_dir }}/calicoctl apply -f /tmp/calico/pool2.yaml
     
 - name: create cni.key
   shell:
@@ -70,25 +70,25 @@
   shell:
     chdir: /tmp/calico
     cmd: |
-      APISERVER=$({{ bin_dir }}kubectl config view -o jsonpath='{.clusters[0].cluster.server}')
-      {{ bin_dir }}kubectl config set-cluster kubernetes \
+      APISERVER=$({{ bin_dir }}/kubectl config view -o jsonpath='{.clusters[0].cluster.server}')
+      {{ bin_dir }}/kubectl config set-cluster kubernetes \
         --certificate-authority=/etc/kubernetes/pki/ca.crt \
         --embed-certs=true \
         --server=$APISERVER \
         --kubeconfig=cni.kubeconfig
 
-      {{ bin_dir }}kubectl config set-credentials calico-cni \
+      {{ bin_dir }}/kubectl config set-credentials calico-cni \
         --client-certificate=cni.crt \
         --client-key=cni.key \
         --embed-certs=true \
         --kubeconfig=cni.kubeconfig
 
-      {{ bin_dir }}kubectl config set-context default \
+      {{ bin_dir }}/kubectl config set-context default \
         --cluster=kubernetes \
         --user=calico-cni \
         --kubeconfig=cni.kubeconfig
 
-      {{ bin_dir }}kubectl config use-context default --kubeconfig=cni.kubeconfig
+      {{ bin_dir }}/kubectl config use-context default --kubeconfig=cni.kubeconfig
 
 - name: create calico cni cr
   template:
@@ -102,8 +102,8 @@
 
 - name: apply calico cni rbac
   shell: |
-    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-cni-cr.yaml
-    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-cni-crb.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/calico/calico-cni-cr.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/calico/calico-cni-crb.yaml
 
 - name: install calico
   get_url:
@@ -171,8 +171,8 @@
   shell:
     chdir: /tmp/calico
     cmd: |
-      {{ bin_dir }}kubectl create configmap -n kube-system calico-typha-ca --from-file=typhaca.crt
-      {{ bin_dir }}kubectl create secret generic -n kube-system calico-typha-certs --from-file=typha.key --from-file=typha.crt
+      {{ bin_dir }}/kubectl create configmap -n kube-system calico-typha-ca --from-file=typhaca.crt
+      {{ bin_dir }}/kubectl create secret generic -n kube-system calico-typha-certs --from-file=typha.key --from-file=typha.crt
   ignore_errors: true
 
 - name: create calico typha sa
@@ -192,9 +192,9 @@
 
 - name: calico typha rbac
   shell: |
-    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-typha-sa.yaml
-    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-typha-cr.yaml
-    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-typha-crb.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/calico/calico-typha-sa.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/calico/calico-typha-cr.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/calico/calico-typha-crb.yaml
 
 - name: create calico typha deployment
   template:
@@ -208,8 +208,8 @@
 
 - name: apply calico typha deployment/svc
   shell: |
-    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-typha-deploy.yaml
-    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-typha-svc.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/calico/calico-typha-deploy.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/calico/calico-typha-svc.yaml
 
 - name: create calico-node.key and calico-node.csr
   shell:
@@ -238,7 +238,7 @@
   shell:
     chdir: /tmp/calico
     cmd: |
-      {{ bin_dir }}kubectl create secret generic -n kube-system calico-node-certs --from-file=calico-node.key --from-file=calico-node.crt
+      {{ bin_dir }}/kubectl create secret generic -n kube-system calico-node-certs --from-file=calico-node.key --from-file=calico-node.crt
   ignore_errors: true
 
 - name: create calico node sa
@@ -258,9 +258,9 @@
 
 - name: apply calico node rbac
   shell: |
-    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-node-sa.yaml
-    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-node-cr.yaml
-    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-node-crb.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/calico/calico-node-sa.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/calico/calico-node-cr.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/calico/calico-node-crb.yaml
 
 - name: create calico node ds
   template:
@@ -269,4 +269,4 @@
 
 - name: apply calico node ds
   shell: |
-    {{ bin_dir }}kubectl apply -f /tmp/calico/calico-node-ds.yaml
+    {{ bin_dir }}/kubectl apply -f /tmp/calico/calico-node-ds.yaml

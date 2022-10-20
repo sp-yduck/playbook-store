@@ -1,12 +1,12 @@
 - name: configure kube-proxy mode
   shell: | 
-    {{ bin_dir }}kubectl -nkube-system get configmap kube-proxy -oyaml | \
+    {{ bin_dir }}/kubectl -nkube-system get configmap kube-proxy -oyaml | \
     sed -e "s/strictARP: false/strictARP: true/" | \
-    {{ bin_dir }}kubectl apply -f - -n kube-system
+    {{ bin_dir }}/kubectl apply -f - -n kube-system
 
 - name: install metallb
   shell: |
-    {{ bin_dir }}kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.5/config/manifests/metallb-native.yaml
+    {{ bin_dir }}/kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.5/config/manifests/metallb-native.yaml
 
 - name: mkdir /tmp/metallb
   file:
@@ -25,4 +25,4 @@
 
 - name: apply /tmp/metallb
   shell: |
-    {{ bin_dir }}kubectl apply -f /tmp/metallb/.
+    {{ bin_dir }}/kubectl apply -f /tmp/metallb/.
