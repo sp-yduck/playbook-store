@@ -1,0 +1,30 @@
+- name: mkdir /tmp/argocd
+  file:
+    path: /tmp/argocd
+    state: directory
+
+- name: create manifest - argocd ns
+  template:
+    src: templates/argocd-ns.yaml.j2
+    dest: /tmp/argocd/argocd-ns.yaml
+
+- name: apply argocd ns
+  shell: |
+    {{ bin_dir }}/kubectl apply -f /tmp/argocd/argocd-ns.yaml
+
+- name: apply argocd crd/components
+  shell: |
+    {{ bin_dir }}/kubectl apply -nargocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+- name: create manifest - argocd ingress
+  template:
+    src: templates/argocd-ingress.yaml.j2
+    dest: /tmp/argocd/argocd-ingress.yaml
+
+- name: apply argocd ingress
+  shell: |
+    {{ bin_dir }}/kubectl apply -f /tmp/argocd/argocd-ingress.yaml
+
+# - name: get argocd initial admin secret
+#   shell: |
+#     {{ bin_dir }}/kubectl  get secret -nargocd argocd-initial-admin-secret -ojsonpath='{.data.password}' | base64 -d
