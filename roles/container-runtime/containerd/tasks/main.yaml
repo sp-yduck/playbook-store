@@ -19,21 +19,66 @@
     - yum-utils
     - device-mapper-persistent-data
     - lvm2
+  when: ansible_distribution == "CentOS"
 
 - name: add docker-ce repo
   shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  when: ansible_distribution == "CentOS"
 
 - name: install containerd.io
   yum:
     name: containerd.io
+  when: ansible_distribution == "CentOS"
+
+- name: install apt package
+  package:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+    state: present
+  when: ansible_distribution == "Ubuntu"
+
+- name: add docker gpg key
+  shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+
+- name: add docker repo
+  get_url:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    dest: /usr/share/keyrings/kubernetes-archive-keyring.gpg
+    mode: '0644'
+
+- name: install containerd
+  apt:
+    pkg:
+      - containerd
+      - docker.io
+    update_cache: yes
 
 - name: mkdir -p /etc/containerd
   file:
     path: "/etc/containerd"
     state: directory
+    mode: '0755'
 
 - name: configure containerd
   shell: containerd config default | tee /etc/containerd/config.toml
+  when: ansible_distribution == "CentOS"
+
+- name: Setting crictl endpoint
+  shell: crictl config --set runtime-endpoint=unix:///run/containerd/containerd.sock --set image-endpoint=unix:///run/containerd/containerd.sock
+
+# - name: Enable systemd cgroup
+#   lineinfile:
+#     path: /etc/containerd/config.toml
+#     regexp: '{{item.regexp}}'
+#     line: '{{item.line}}'
+#     insertafter: '{{item.insertafter}}'
+#   with_items:
+#   - regexp: '            SystemdCgroup = false'
+#     line: '            SystemdCgroup = true'
+#     insertafter: 'plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options'
 
 - name: systemctl enable/restart containerd
   systemd:

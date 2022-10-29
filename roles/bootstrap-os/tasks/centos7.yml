@@ -1,5 +1,14 @@
+- name: set hostname
+  hostname:
+    name: "{{ hostname }}"
+    
 - name: swap off
   shell: swapoff -a
+
+- name: mkdir "/opt/cni/bin"
+  file:
+    path: "/opt/cni/bin"
+    state: directory
 
 - name: install cni plugins
   vars:

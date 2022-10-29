@@ -5,7 +5,7 @@
 
 - name: get calico crds
   get_url:
-    url: "https://raw.githubusercontent.com/projectcalico/calico/{{ calicocrd_version }}/manifests/crds.yaml"
+    url: "https://raw.githubusercontent.com/projectcalico/calico/{{ calico_version }}/manifests/crds.yaml"
     dest: /tmp/calico/crds.yaml
 
 - name: export kubectl path
@@ -16,7 +16,7 @@
 
 - name: get calicoctl
   get_url: 
-    url: "https://github.com/projectcalico/calicoctl/releases/download/{{ calico_version }}/calicoctl"
+    url: "https://github.com/projectcalico/calico/releases/download/{{ calico_version }}/calicoctl-linux-{{ arch }}"
     dest: "/usr/local/bin/calicoctl"
     mode: +x
 
@@ -25,7 +25,7 @@
   register: datastore
 
 - name: set DATASTORE_TYPE
-  shell: echo 'export DATASTORE_TYPE=kubernetes' >> /root/.bashrc && source /root/.bashrc
+  shell: echo 'export DATASTORE_TYPE=kubernetes' >> ~/.bashrc && . ~/.bashrc
   when: datastore.stdout == ""
 
 - name: create manifest ip pool1
@@ -40,8 +40,8 @@
 
 - name: apply IP pools
   shell: |
-    {{ bin_dir }}/calicoctl apply -f /tmp/calico/pool1.yaml
-    {{ bin_dir }}/calicoctl apply -f /tmp/calico/pool2.yaml
+    {{ bin_dir }}/calicoctl apply -f /tmp/calico/pool1.yaml --allow-version-mismatch
+    {{ bin_dir }}/calicoctl apply -f /tmp/calico/pool2.yaml --allow-version-mismatch
     
 - name: create cni.key
   shell:
@@ -107,13 +107,13 @@
 
 - name: install calico
   get_url:
-    url: https://github.com/projectcalico/cni-plugin/releases/download/v3.14.0/calico-amd64
+    url: "https://github.com/projectcalico/cni-plugin/releases/download/v3.14.0/calico-{{ arch }}"
     dest: /opt/cni/bin/calico
     mode: +x
 
 - name: install calico-ipam
   get_url:
-    url: https://github.com/projectcalico/cni-plugin/releases/download/v3.14.0/calico-ipam-amd64
+    url: "https://github.com/projectcalico/cni-plugin/releases/download/v3.14.0/calico-ipam-{{ arch }}"
     dest: /opt/cni/bin/calico-ipam
     mode: +x
 

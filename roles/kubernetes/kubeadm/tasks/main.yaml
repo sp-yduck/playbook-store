@@ -46,18 +46,12 @@
     cmd: "curl -sSL 'https://raw.githubusercontent.com/kubernetes/release/{{ k8s_release_version }}/cmd/kubepkg/templates/latest/deb/kubeadm/10-kubeadm.conf' | sed 's:/usr/bin:/usr/local/bin:g' | tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf"
     creates: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 
-- name: chmod kubeadm.conf
-  file:
-    path: /etc/kubernetes/admin.conf
-    mode: +x
-
 - name: install socat,conntrack
-  yum:
-    name: "{{ packages }}"
-  vars:
-    packages:
-    - socat
-    - conntrack
+  package:
+    name:
+      - socat
+      - conntrack
+    state: present
 
 - name: systemctl enable kubelet
   systemd:
@@ -67,11 +61,21 @@
     daemon_reload: yes
 
 - name: kubeadm is initiated
-  shell: /usr/local/bin/kubeadm token list
+  shell: /usr/local/bin/kubeadm upgrade plan
   ignore_errors: true
   register: initiated
+
+- name: kubeadm reset
+  shell: /usr/local/bin/kubeadm reset -f
+  when: not initiated.rc == 0
+  ignore_errors: true
 
 - name: kubeadm init
   shell: 'KUBELET_KUBEADM_ARGS="--container-runtime={{ container_runtime }} --container-runtime-endpoint={{ container_runtime_endpoint }}" \
     kubeadm init --pod-network-cidr={{ pod_network_cidr }}'
-  when: initiated is true
+  when: not initiated.rc == 0
+
+- name: chmod kubeadm.conf
+  file:
+    path: /etc/kubernetes/admin.conf
+    mode: +x

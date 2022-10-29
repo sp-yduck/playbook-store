@@ -1,0 +1,55 @@
+- name: set hostname
+  hostname:
+    name: "{{ hostname }}"
+
+- name: enable firewall
+  with_items: 
+    - 22
+    - 53
+    - 80
+    - 443
+    - 6443  # kube-apiserver
+    - 2379  # etcd
+    - 2389  # etcd
+    - 10250  # kubelet
+    - 10259  # kube-scheduler
+    - 10257  # kube-controllermanager
+  ufw:
+    state: enabled
+    rule: allow
+    port: "{{ item }}"
+    
+- name: swap off
+  shell: swapoff -a
+
+- name: check cgroups memory
+  shell: cat /boot/firmware/cmdline.txt | grep cgroup_enable=memory
+  register: cgroup_mem
+  ignore_errors: true
+
+- name: enable cgroups memory
+  shell: sed 's/$/ cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory/g' -i "/boot/firmware/cmdline.txt"
+  when: cgroup_mem.rc == 1
+
+- name: mkdir "/opt/cni/bin"
+  file:
+    path: "/opt/cni/bin"
+    state: directory
+
+- name: install cni plugins
+  vars:
+    cni_version: v1.1.1
+  shell:
+    cmd: 'curl -L "https://github.com/containernetworking/plugins/releases/download/{{ cni_version }}/cni-plugins-linux-{{ arch }}-{{ cni_version }}.tgz" | sudo tar -C "/opt/cni/bin" -xz'
+
+- name: mkdir for crictl
+  file:
+    path: "/usr/local/bin"
+    state: directory
+
+- name: install crictl
+  vars:
+    crictl_version: v1.25.0
+  shell: 
+    cmd: 'curl -L "https://github.com/kubernetes-sigs/cri-tools/releases/download/{{ crictl_version }}/crictl-{{ crictl_version }}-linux-{{ arch }}.tar.gz" | sudo tar -C "/usr/local/bin" -xz'
+    creates: "/usr/local/bin/crictl"

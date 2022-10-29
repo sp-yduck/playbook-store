@@ -5,3 +5,4 @@
   - kubernetes-apps/metallb
   - kubernetes-apps/nginx-ingress
   - kubernetes-apps/cert-manager
+  - kubernetes-apps/argocd

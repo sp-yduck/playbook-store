@@ -2,7 +2,7 @@
   hosts: k8s_master
   become: true
   roles:
-  - bootstrap-os/centos7
+  - bootstrap-os
   - container-runtime/containerd
   - kubernetes/kubeadm
   - kubernetes/kubectl

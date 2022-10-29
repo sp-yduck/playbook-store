@@ -13,8 +13,7 @@ container_runtime: "remote"
 container_runtime_endpoint: "/run/containerd/containerd.sock"
 
 # calico
-calicocrd_version: v3.24.1
-calico_version: v3.20.0
+calico_version: v3.24.1
 typha_replicas: 1
 
 # prometheus

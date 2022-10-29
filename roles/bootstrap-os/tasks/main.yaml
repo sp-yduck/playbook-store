@@ -1,0 +1,7 @@
+- name: tasks for CentOS
+  include_tasks: roles/bootstrap-os/tasks/centos7.yaml
+  when: ansible_distribution == "CentOS"
+
+- name: tasks for Ubuntu
+  include_tasks: roles/bootstrap-os/tasks/ubuntu.yaml
+  when: ansible_distribution == "Ubuntu"
